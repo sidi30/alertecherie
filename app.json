@@ -16,6 +16,7 @@
       "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": [
+          "audio",
           "audio"
         ]
       }
@@ -23,6 +24,10 @@
     "android": {
       "package": "com.sidi30.alertcherie",
       "permissions": [
+        "POST_NOTIFICATIONS",
+        "ACCESS_NOTIFICATION_POLICY",
+        "VIBRATE",
+        "WAKE_LOCK",
         "POST_NOTIFICATIONS",
         "ACCESS_NOTIFICATION_POLICY",
         "VIBRATE",
@@ -48,6 +53,9 @@
       "eas": {
         "projectId": "b09a1735-f4cc-44ec-9b21-cc1ba7786678"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b09a1735-f4cc-44ec-9b21-cc1ba7786678"
     }
   }
 }
