@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# native
+ios/
+android/
+*.orig.*
+
+# secrets — NE JAMAIS COMMITTER
+play-service-account.json
+google-services.json
+GoogleService-Info.plist
+.env*
+*.keystore
+*.aab
+firebase-debug.log
+.firebase/
+
+# misc
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.DS_Store

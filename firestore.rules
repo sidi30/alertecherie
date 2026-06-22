@@ -1,0 +1,78 @@
+rules_version = '2';
+// Règles pour AlerteCherie (modèle sans compte).
+// Doc users/{id} = { pushToken, prenom, numero, updatedAt }.
+//
+// Lecture : publique, REQUISE pour le lookup d'un proche par identifiant
+//   (l'app récupère pushToken + prenom + numero à l'ajout puis pour sonner).
+//   Firestore ne sait pas renvoyer un champ partiel : read = tout ou rien.
+//   >>> Conséquence : `numero` est exposé à quiconque devine un id. <<<
+//   Pour supprimer cette exposition SANS casser la fonctionnalité, voir le
+//   bloc "VARIANTE DURCIE" en bas (Auth anonyme + ownership + split du numéro).
+//
+// Écriture : on borne strictement la forme ET la taille des champs pour
+//   limiter l'abus (écrasement d'un id deviné, gonflage de stockage / DoS,
+//   injection de payloads géants dans pushToken/prenom/numero).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function validUserData(d) {
+      return d.keys().hasOnly(['pushToken', 'prenom', 'numero', 'updatedAt'])
+        // pushToken : null ou jeton Expo plausible (borné).
+        && (d.pushToken == null
+            || (d.pushToken is string
+                && d.pushToken.size() <= 256))
+        // prenom : null ou court.
+        && (d.prenom == null
+            || (d.prenom is string && d.prenom.size() <= 40))
+        // numero : null ou court (téléphone).
+        && (d.numero == null
+            || (d.numero is string && d.numero.size() <= 24))
+        // updatedAt doit être l'horodatage serveur (pas de valeur arbitraire).
+        && (d.updatedAt == request.time);
+    }
+
+    match /users/{id} {
+      // Lookup par identifiant : lecture publique (cf. note ci-dessus).
+      allow read: if true;
+
+      // L'id court (4..12) sert d'écran ; on valide en plus la forme des données.
+      allow create, update: if id.size() >= 4 && id.size() <= 12
+                            && validUserData(request.resource.data);
+
+      // Jamais de suppression depuis le client.
+      allow delete: if false;
+    }
+
+    // Tout le reste est fermé.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ============================================================================
+//  VARIANTE DURCIE (recommandée) — à activer avec signInAnonymously() côté app.
+//  Supprime l'écrasement d'un id deviné ET l'exfiltration des numéros.
+//  Le doc ne contient PLUS le numéro ; le routing (pushToken+prenom) reste
+//  public pour le lookup. Le numéro est échangé hors de ce doc public
+//  (ex. sous-collection privée users/{id}/private/contact lisible par
+//  l'owner uniquement, ou simplement non stocké côté serveur).
+//
+//  function isOwner(id) { return request.auth != null && request.auth.uid == resource.data.ownerUid; }
+//
+//  match /users/{id} {
+//    allow read: if true;                                  // pushToken + prenom seulement
+//    allow create: if request.auth != null
+//                  && request.resource.data.ownerUid == request.auth.uid
+//                  && validPublicData(request.resource.data);
+//    allow update: if request.auth != null
+//                  && resource.data.ownerUid == request.auth.uid
+//                  && request.resource.data.ownerUid == request.auth.uid;
+//    allow delete: if false;
+//
+//    match /private/{doc} {
+//      allow read, write: if request.auth != null
+//                         && request.auth.uid == get(/databases/$(database)/documents/users/$(id)).data.ownerUid;
+//    }
+//  }
+// ============================================================================
