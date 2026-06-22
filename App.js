@@ -75,24 +75,30 @@ export default function App() {
     })();
 
     // Écoute des notifs reçues app au 1er plan
-    recvSub.current = Notifications.addNotificationReceivedListener((n) => {
-      triggerAlarm(n.request.content.data, n.request.identifier);
-    });
+    try {
+      recvSub.current = Notifications.addNotificationReceivedListener((n) => {
+        triggerAlarm(n.request.content.data, n.request.identifier);
+      });
+    } catch {}
     // Réponse (tap) depuis background / killed
-    respSub.current = Notifications.addNotificationResponseReceivedListener((r) => {
-      const req = r.notification.request;
-      triggerAlarm(req.content.data, req.identifier);
-    });
+    try {
+      respSub.current = Notifications.addNotificationResponseReceivedListener((r) => {
+        const req = r.notification.request;
+        triggerAlarm(req.content.data, req.identifier);
+      });
+    } catch {}
     // Cold start via notif : ne déclencher que si la notif est récente (<30 s),
     // sinon un relancement normal rejouerait un ancien tap (faux positif).
-    Notifications.getLastNotificationResponseAsync().then((r) => {
-      if (!r) return;
-      const req = r.notification.request;
-      // `date` est en secondes (iOS) ou millisecondes (Android) selon la plateforme.
-      let ts = r.notification.date || 0;
-      if (ts > 0 && ts < 1e12) ts *= 1000; // normalise s -> ms
-      if (!ts || Date.now() - ts < 30000) triggerAlarm(req.content.data, req.identifier);
-    });
+    try {
+      Notifications.getLastNotificationResponseAsync().then((r) => {
+        if (!r) return;
+        const req = r.notification.request;
+        // `date` est en secondes (iOS) ou millisecondes (Android) selon la plateforme.
+        let ts = r.notification.date || 0;
+        if (ts > 0 && ts < 1e12) ts *= 1000; // normalise s -> ms
+        if (!ts || Date.now() - ts < 30000) triggerAlarm(req.content.data, req.identifier);
+      });
+    } catch {}
 
     // Coupe l'alarme si l'app passe en arrière-plan (évite une boucle orpheline).
     const appStateSub = AppState.addEventListener('change', (s) => {
