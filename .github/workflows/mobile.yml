@@ -1,0 +1,97 @@
+name: Mobile CI + OTA
+
+# CI gate on PRs + OTA (eas update) on push to main. OTA ships the JS bundle to
+# the `production` channel; devices on a build with the matching runtime version
+# pick it up at next launch. Native changes (new packages, app.json plugins, SDK
+# bump) are NOT shipped this way — they need a full eas build + store submission.
+#
+# Required secret: EXPO_TOKEN
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'app.json'
+      - 'firebaseConfig.js'
+      - 'index.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'app.json'
+      - 'firebaseConfig.js'
+      - 'index.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/mobile.yml'
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      # JS project (no tsconfig) — expo-doctor is the config-sanity gate.
+      - name: Expo Doctor
+        run: npx --yes expo-doctor
+
+  # OTA update on every push to main.
+  eas-update:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Publish OTA update (channel production)
+        env:
+          # Via env (not inline interpolation) — commit messages can contain
+          # quotes/newlines that would break or inject into the shell.
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          eas update \
+            --channel production \
+            --message "$(echo "$COMMIT_MSG" | head -1 | cut -c1-120)" \
+            --non-interactive
+
+      - name: Summary
+        run: |
+          echo "OTA update published on channel **production**" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,104 @@
+name: iOS Build (CI Mac) → TestFlight
+
+# Builds the iOS .ipa LOCALLY on a GitHub-hosted macOS runner via
+# `eas build --local`. Consumes GitHub Actions minutes (macOS = billable) —
+# NOT the EAS cloud build quota. The runner provides macOS + Xcode (which a
+# Windows dev box can't). Credentials + ASC API key stay EAS-managed.
+#
+# Manual trigger (Actions tab -> Run workflow). One run = one TestFlight build.
+# Required secret: EXPO_TOKEN
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: "Submit the build to TestFlight after building"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # macos-15 ships a recent Xcode required by current Expo SDK / RN.
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pick the newest non-beta Xcode installed, so a runner-image change
+      # can't silently downgrade below the SDK floor.
+      - name: Select latest stable Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)
+          echo "Selecting $XC"
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Show remote iOS build number (info)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build:version:get --platform ios --non-interactive || true
+
+      # Local build, distribution = store (production profile) -> TestFlight-ready
+      # .ipa. Versioning resolved on EAS servers (appVersionSource:remote +
+      # autoIncrement); --local only moves the Xcode compile to this runner.
+      - name: Build .ipa locally (no EAS cloud quota)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build \
+            --platform ios \
+            --profile production \
+            --local \
+            --non-interactive \
+            --output "$GITHUB_WORKSPACE/app.ipa"
+
+      - name: Upload .ipa artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: ${{ github.workspace }}/app.ipa
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Submit to TestFlight
+        if: ${{ inputs.submit }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas submit \
+            --platform ios \
+            --profile production \
+            --path "$GITHUB_WORKSPACE/app.ipa" \
+            --non-interactive
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "## iOS build" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Built locally on \`macos-15\` (no EAS cloud quota used)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Submit to TestFlight: \`${{ inputs.submit }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- .ipa uploaded as artifact \`ios-ipa\` (7-day retention)." >> "$GITHUB_STEP_SUMMARY"
+          echo "First build of an app -> answer Export Compliance in App Store Connect (standard encryption -> No)." >> "$GITHUB_STEP_SUMMARY"

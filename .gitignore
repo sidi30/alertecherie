@@ -30,3 +30,11 @@ npm-debug.*
 *.key
 *.mobileprovision
 .DS_Store
+
+# GCP / Play service account keys
+*service-account*.json
+*-firebase-adminsdk-*.json
+src/legialert-*.json
+
+# IDE
+.idea/
