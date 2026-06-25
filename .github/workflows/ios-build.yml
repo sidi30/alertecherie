@@ -23,6 +23,11 @@ concurrency:
 permissions:
   contents: read
 
+# Opt into Node 24 for JS-based actions (GitHub deprecated Node 20 on runners) —
+# silences the deprecation warning.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     # macos-15 ships a recent Xcode required by current Expo SDK / RN.
