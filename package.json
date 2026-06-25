@@ -6,7 +6,15 @@
     "start": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "gen-alarm": "node scripts/gen-alarm.js"
+    "gen-alarm": "node scripts/gen-alarm.js",
+    "eas:whoami": "eas-cli whoami",
+    "eas:init": "eas-cli init",
+    "build:dev:android": "eas-cli build --profile development --platform android --non-interactive --no-wait",
+    "build:dev:ios": "eas-cli build --profile development --platform ios --non-interactive --no-wait",
+    "build:preview": "eas-cli build --profile preview --platform all --non-interactive --no-wait",
+    "build:prod:android": "eas-cli build --platform android --profile production --auto-submit --non-interactive --no-wait",
+    "build:prod:ios": "eas-cli build --platform ios --profile production --auto-submit --non-interactive --no-wait",
+    "ota": "eas-cli update --channel production --platform all"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",

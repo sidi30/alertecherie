@@ -11,12 +11,13 @@
 // ============================================================================
 
 export const firebaseConfig = {
-  apiKey: 'REMPLIR',
-  authDomain: 'REMPLIR.firebaseapp.com',
-  projectId: 'REMPLIR',
-  storageBucket: 'REMPLIR.appspot.com',
-  messagingSenderId: 'REMPLIR',
-  appId: 'REMPLIR',
+  apiKey: 'AIzaSyCIqvq3c6Ohk_lnZvqo4GASwi_r4S_dd8Q',
+  authDomain: 'diaspora-connect-c8473.firebaseapp.com',
+  projectId: 'diaspora-connect-c8473',
+  storageBucket: 'diaspora-connect-c8473.firebasestorage.app',
+  messagingSenderId: '958624990787',
+  appId: '1:958624990787:web:624e03b64f00a9425b36f6',
+  measurementId: 'G-C7CD9VY3C1',
 };
 
 // Nom de la collection qui mappe identifiant -> { pushToken, prenom, numero }.

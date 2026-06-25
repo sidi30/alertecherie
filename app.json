@@ -16,7 +16,6 @@
       "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": [
-          "audio",
           "audio"
         ]
       }
@@ -24,10 +23,6 @@
     "android": {
       "package": "com.sidi30.alertcherie",
       "permissions": [
-        "POST_NOTIFICATIONS",
-        "ACCESS_NOTIFICATION_POLICY",
-        "VIBRATE",
-        "WAKE_LOCK",
         "POST_NOTIFICATIONS",
         "ACCESS_NOTIFICATION_POLICY",
         "VIBRATE",
