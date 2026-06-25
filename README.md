@@ -25,7 +25,7 @@ notifications. Les pushs partent **directement de l'app** via l'API Expo Push
 
 ## Stack
 
-Expo SDK 52 · expo-notifications · expo-av · expo-linking · expo-clipboard ·
+Expo SDK 52 · expo-notifications · expo-audio · expo-linking · expo-clipboard ·
 expo-device · AsyncStorage · Firebase (Firestore JS SDK) · share sheet natif.
 
 ## Structure

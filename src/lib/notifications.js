@@ -10,7 +10,7 @@ export const ALARM_CHANNEL_ID = 'alarm';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
-    // false : au 1er plan c'est playAlarm() (expo-av) qui joue le son en boucle.
+    // false : au 1er plan c'est playAlarm() (expo-audio) qui joue le son en boucle.
     // Laisser true ferait jouer 2 sons en même temps (canal + alarme).
     shouldPlaySound: false,
     shouldSetBadge: false,

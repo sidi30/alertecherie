@@ -1,28 +1,28 @@
-// Lecture en boucle du son d'alarme bundlé via expo-av.
-import { Audio } from 'expo-av';
+// Lecture en boucle du son d'alarme bundlé via expo-audio.
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
-let sound = null;
-let loading = false; // garde synchrone : empêche 2 createAsync concurrents (fuite)
+let player = null;
+let loading = false; // garde synchrone : empêche 2 démarrages concurrents (fuite)
 let safetyTimer = null;
 
 const MAX_MS = 60000; // arrêt de sécurité : ne sonne jamais > 60 s
 
 /** Démarre l'alarme en boucle, volume max. Idempotent + anti-race. */
 export async function playAlarm() {
-  if (sound || loading) return;
+  if (player || loading) return;
   loading = true;
   try {
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true, // l'app est ouverte : on autorise le son
-      staysActiveInBackground: true,
-      shouldDuckAndroid: false,
-      playThroughEarpieceAndroid: false,
+    await setAudioModeAsync({
+      playsInSilentMode: true, // l'app est ouverte : on autorise le son
+      shouldPlayInBackground: true,
+      interruptionModeAndroid: 'doNotMix', // ne pas baisser/ducker
+      shouldRouteThroughEarpiece: false,
     });
-    const { sound: s } = await Audio.Sound.createAsync(
-      require('../../assets/alarm.wav'),
-      { shouldPlay: true, isLooping: true, volume: 1.0 }
-    );
-    sound = s;
+    const p = createAudioPlayer(require('../../assets/alarm.wav'));
+    p.loop = true;
+    p.volume = 1.0;
+    p.play();
+    player = p;
     safetyTimer = setTimeout(() => {
       stopAlarm();
     }, MAX_MS);
@@ -37,12 +37,12 @@ export async function stopAlarm() {
     clearTimeout(safetyTimer);
     safetyTimer = null;
   }
-  if (!sound) return;
-  const s = sound;
-  sound = null;
+  if (!player) return;
+  const p = player;
+  player = null;
   try {
-    await s.stopAsync();
-    await s.unloadAsync();
+    p.pause();
+    p.remove();
   } catch {
     // ignore
   }

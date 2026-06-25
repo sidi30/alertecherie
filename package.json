@@ -21,7 +21,7 @@
     "@react-native-async-storage/async-storage": "1.23.1",
     "expo": "~52.0.0",
     "expo-asset": "~11.0.5",
-    "expo-av": "~15.0.1",
+    "expo-audio": "~0.3.5",
     "expo-clipboard": "~7.0.0",
     "expo-constants": "~17.0.3",
     "expo-dev-client": "~5.0.6",
@@ -39,16 +39,6 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@playwright/test": "^1.61.0"
-  },
-  "expo": {
-    "doctor": {
-      "reactNativeDirectoryCheck": {
-        "listUnknownPackages": false,
-        "exclude": [
-          "expo-av"
-        ]
-      }
-    }
   },
   "private": true
 }
