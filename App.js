@@ -61,7 +61,11 @@ export default function App() {
         try {
           const token = await registerForPush();
           if (token) await registerSelf(existing.id, { ...existing, pushToken: token });
-        } catch {}
+        } catch (e) {
+          // Non bloquant, mais ne pas avaler en silence : un token non resynchronisé
+          // = ce user devient injoignable (les proches reçoivent DeviceNotRegistered).
+          console.warn('[push] resync token échoué :', e?.message || e);
+        }
         setPhase('ready');
       } else {
         // génère un id unique
@@ -100,9 +104,11 @@ export default function App() {
       });
     } catch {}
 
-    // Coupe l'alarme si l'app passe en arrière-plan (évite une boucle orpheline).
+    // Coupe l'alarme seulement si l'app passe vraiment en arrière-plan.
+    // (Pas sur 'inactive' : iOS l'émet pour le centre de notif / overlays
+    //  transitoires, ce qui couperait l'alarme à tort.)
     const appStateSub = AppState.addEventListener('change', (s) => {
-      if (s !== 'active') stopAlarm();
+      if (s === 'background') stopAlarm();
     });
 
     return () => {

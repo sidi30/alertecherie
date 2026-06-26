@@ -38,7 +38,7 @@ export default function AddContactModal({ visible, onClose, onAdd, selfId, exist
   const submit = async () => {
     const id = normalizeId(value);
     setError('');
-    if (id.length < 4) return setError('Identifiant trop court.');
+    if (id.length < 6) return setError('Identifiant trop court (6 caractères).');
     if (id === selfId) return setError('C’est ton propre identifiant.');
     if (existingIds?.includes(id)) return setError('Déjà dans ta liste.');
 
