@@ -18,16 +18,16 @@ const db = getFirestore(app);
  */
 export async function registerSelf(id, { pushToken, prenom, numero }) {
   const ref = doc(db, USERS_COLLECTION, id);
-  await setDoc(
-    ref,
-    {
-      pushToken: pushToken ?? null,
-      prenom: prenom ?? null,
-      numero: numero ?? null,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const data = {
+    prenom: prenom ?? null,
+    numero: numero ?? null,
+    updatedAt: serverTimestamp(),
+  };
+  // N'inclure pushToken que si on en a un : l'identité reste enregistrée même
+  // sans token (Android sans FCM, refus de permission), et une resync sans
+  // token n'écrase pas un token déjà valide par null.
+  if (pushToken) data.pushToken = pushToken;
+  await setDoc(ref, data, { merge: true });
 }
 
 /** Vrai si l'identifiant est déjà pris (pour éviter les collisions). */

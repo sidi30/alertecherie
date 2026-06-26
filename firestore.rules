@@ -17,8 +17,9 @@ service cloud.firestore {
 
     function validUserData(d) {
       return d.keys().hasOnly(['pushToken', 'prenom', 'numero', 'updatedAt'])
-        // pushToken : null ou jeton Expo plausible (borné).
-        && (d.pushToken == null
+        // pushToken : absent (pas encore de token), null, ou jeton Expo borné.
+        && (!('pushToken' in d)
+            || d.pushToken == null
             || (d.pushToken is string
                 && d.pushToken.size() <= 256))
         // prenom : null ou court.

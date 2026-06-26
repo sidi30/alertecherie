@@ -60,11 +60,13 @@ export default function App() {
         // re-sync token (peut changer après réinstall / update)
         try {
           const token = await registerForPush();
-          if (token) await registerSelf(existing.id, { ...existing, pushToken: token });
+          // Toujours re-écrire l'identité (recrée le doc s'il manque) ;
+          // registerSelf n'écrase pas un token existant par null si token est nul.
+          await registerSelf(existing.id, { ...existing, pushToken: token });
         } catch (e) {
           // Non bloquant, mais ne pas avaler en silence : un token non resynchronisé
           // = ce user devient injoignable (les proches reçoivent DeviceNotRegistered).
-          console.warn('[push] resync token échoué :', e?.message || e);
+          console.warn('[push] resync échoué :', e?.message || e);
         }
         setPhase('ready');
       } else {
@@ -121,23 +123,27 @@ export default function App() {
   // ---- Fin onboarding : permission push + enregistrement Firestore ----
   const finishOnboarding = async ({ prenom, numero }) => {
     setBusy(true);
+    const me = { id: pendingId, prenom, numero };
+    // Récupère le token push ; un échec (émulateur, refus, Android sans FCM)
+    // ne doit PAS empêcher l'inscription Firestore.
+    let token = null;
     try {
-      const token = await registerForPush();
-      const me = { id: pendingId, prenom, numero };
-      await registerSelf(pendingId, { ...me, pushToken: token });
-      await saveSelf(me);
-      setSelf(me);
-      setContacts(await getContacts());
-      setPhase('ready');
+      token = await registerForPush();
     } catch (e) {
-      // Même sans token (émulateur / refus), on continue : l'app reste utilisable
-      const me = { id: pendingId, prenom, numero };
-      await saveSelf(me);
-      setSelf(me);
-      setPhase('ready');
-    } finally {
-      setBusy(false);
+      console.warn('[push] token onboarding échoué :', e?.message || e);
     }
+    // Inscrit l'identité quoi qu'il arrive : l'utilisateur doit être trouvable.
+    // Le token sera ajouté à la prochaine resync une fois le push disponible.
+    try {
+      await registerSelf(pendingId, { ...me, pushToken: token });
+    } catch (e) {
+      console.warn('[firestore] registerSelf onboarding échoué :', e?.message || e);
+    }
+    await saveSelf(me);
+    setSelf(me);
+    setContacts(await getContacts());
+    setPhase('ready');
+    setBusy(false);
   };
 
   const onAddContact = async (c) => setContacts(await addContactStore(c));
