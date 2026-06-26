@@ -44,7 +44,7 @@ export default function HomeScreen({ self, contacts, setContacts, onAddContact, 
         Alert.alert('Indisponible', `${contact.prenom || contact.id} n’a pas de notifications actives.`);
         return;
       }
-      const res = await sendRing(fresh.pushToken, self.prenom);
+      const res = await sendRing(fresh.pushToken, self.prenom, fresh.platform);
       if (res.ok) {
         Alert.alert('Envoyé', `${contact.prenom || contact.id} va sonner.`);
       } else {

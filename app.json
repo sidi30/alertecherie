@@ -4,7 +4,7 @@
     "slug": "alertcherie",
     "owner": "sidi30",
     "scheme": "alertcherie",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
@@ -28,7 +28,10 @@
         "POST_NOTIFICATIONS",
         "ACCESS_NOTIFICATION_POLICY",
         "VIBRATE",
-        "WAKE_LOCK"
+        "WAKE_LOCK",
+        "USE_FULL_SCREEN_INTENT",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "plugins": [

@@ -8,23 +8,37 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
  * Fait sonner l'appareil cible.
  * @param {string} toToken  expoPushToken du destinataire
  * @param {string} fromName prénom de l'émetteur (affiché dans la notif)
+ * @param {('ios'|'android'|null)} platform plateforme du destinataire
  * @returns {Promise<{ok: boolean, error?: string}>}
  */
-export async function sendRing(toToken, fromName) {
+export async function sendRing(toToken, fromName, platform) {
   if (!toToken) return { ok: false, error: 'Aucun token pour ce contact.' };
 
-  const message = {
-    to: toToken,
-    title: `${fromName || 'Quelqu’un'} te cherche`,
-    body: 'Appuie pour ouvrir et arrêter l’alarme.',
-    sound: 'default', // iOS : son standard (respecte le silencieux)
-    priority: 'high',
-    channelId: ALARM_CHANNEL_ID, // Android : canal alarme bypassDnd
-    // data lue à la réception pour déclencher l'écran alarme
-    data: { type: 'ring', from: fromName || '' },
-    // Android : remonte en heads-up
-    _displayInForeground: true,
-  };
+  const data = { type: 'ring', from: fromName || '' };
+
+  // Android : push DATA-ONLY (pas de title/body) + priorité haute -> réveille la
+  // tâche background qui construit la notif full-screen (sonne même verrouillé /
+  // en vibreur via le foreground service). Un push "notification" classique
+  // serait affiché par le système et resterait muet en vibreur.
+  // iOS : notification standard avec son (full-screen impossible sans l'entitlement
+  // Critical Alerts -> respecte le silencieux, comportement voulu).
+  const message =
+    platform === 'android'
+      ? {
+          to: toToken,
+          data,
+          priority: 'high',
+          channelId: ALARM_CHANNEL_ID,
+          _contentAvailable: true,
+        }
+      : {
+          to: toToken,
+          title: `${fromName || 'Quelqu’un'} te cherche`,
+          body: 'Appuie pour ouvrir et arrêter l’alarme.',
+          sound: 'default',
+          priority: 'high',
+          data,
+        };
 
   // Timeout : sans ça, une requête peut bloquer le bouton "Envoi…" à l'infini.
   const ctrl = new AbortController();

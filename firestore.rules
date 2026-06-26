@@ -16,7 +16,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function validUserData(d) {
-      return d.keys().hasOnly(['pushToken', 'prenom', 'numero', 'updatedAt'])
+      return d.keys().hasOnly(['pushToken', 'prenom', 'numero', 'platform', 'updatedAt'])
         // pushToken : absent (pas encore de token), null, ou jeton Expo borné.
         && (!('pushToken' in d)
             || d.pushToken == null
@@ -28,6 +28,10 @@ service cloud.firestore {
         // numero : null ou court (téléphone).
         && (d.numero == null
             || (d.numero is string && d.numero.size() <= 24))
+        // platform : absent, null, ou court ('ios' / 'android').
+        && (!('platform' in d)
+            || d.platform == null
+            || (d.platform is string && d.platform.size() <= 16))
         // updatedAt doit être l'horodatage serveur (pas de valeur arbitraire).
         && (d.updatedAt == request.time);
     }

@@ -1,9 +1,10 @@
 // Orchestrateur : 1er lancement (id + onboarding + push), écran principal,
 // écoute des notifs et écran d'alarme.
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, SafeAreaView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, SafeAreaView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
+import notifee, { EventType } from '@notifee/react-native';
 
 import HomeScreen from './src/screens/HomeScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
@@ -21,6 +22,7 @@ import {
 import { registerForPush } from './src/lib/notifications';
 import { registerSelf, idExists } from './src/firebase';
 import { playAlarm, stopAlarm } from './src/lib/alarm';
+import { showAlarmNotification, stopAlarmNotification } from './src/lib/alarmNotif';
 
 export default function App() {
   const [phase, setPhase] = useState('loading'); // loading | onboarding | ready
@@ -42,11 +44,18 @@ export default function App() {
       handledIds.current.add(id);
     }
     setAlarm({ from: data.from || '' });
-    await playAlarm();
+    if (Platform.OS === 'android') {
+      // Android : la notif full-screen + foreground service jouent le son
+      // (audible même en vibreur). On affiche juste l'écran d'alarme.
+      await showAlarmNotification(data.from || '');
+    } else {
+      await playAlarm();
+    }
   };
 
   const stop = async () => {
-    await stopAlarm();
+    // Coupe tout : son, foreground service Android, notif.
+    await stopAlarmNotification();
     setAlarm(null);
   };
 
@@ -106,17 +115,34 @@ export default function App() {
       });
     } catch {}
 
-    // Coupe l'alarme seulement si l'app passe vraiment en arrière-plan.
-    // (Pas sur 'inactive' : iOS l'émet pour le centre de notif / overlays
-    //  transitoires, ce qui couperait l'alarme à tort.)
+    // notifee (Android) : app ouverte via la notif full-screen -> afficher
+    // l'écran d'alarme ; bouton "Arrêter" / appui notif -> stopper / afficher.
+    let notifeeUnsub = () => {};
+    try {
+      notifee.getInitialNotification().then((init) => {
+        const d = init?.notification?.data;
+        if (d?.type === 'ring') setAlarm({ from: d.from || '' });
+      });
+      notifeeUnsub = notifee.onForegroundEvent(({ type, detail }) => {
+        if (type === EventType.ACTION_PRESS && detail.pressAction?.id === 'stop') {
+          stop();
+        } else if (type === EventType.PRESS && detail.notification?.data?.type === 'ring') {
+          setAlarm({ from: detail.notification.data.from || '' });
+        }
+      });
+    } catch {}
+
+    // iOS seulement : pas de foreground service, on coupe le son si l'app part
+    // vraiment en arrière-plan. Android : le service gère la durée -> ne pas couper.
     const appStateSub = AppState.addEventListener('change', (s) => {
-      if (s === 'background') stopAlarm();
+      if (Platform.OS === 'ios' && s === 'background') stopAlarm();
     });
 
     return () => {
       recvSub.current?.remove();
       respSub.current?.remove();
       appStateSub.remove();
+      notifeeUnsub();
     };
   }, []);
 

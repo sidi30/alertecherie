@@ -1,4 +1,5 @@
 // Accès Firestore : enregistrement de soi + lookup d'un proche par identifiant.
+import { Platform } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import {
   getFirestore,
@@ -21,6 +22,7 @@ export async function registerSelf(id, { pushToken, prenom, numero }) {
   const data = {
     prenom: prenom ?? null,
     numero: numero ?? null,
+    platform: Platform.OS, // 'ios' | 'android' : détermine le type de push à envoyer
     updatedAt: serverTimestamp(),
   };
   // N'inclure pushToken que si on en a un : l'identité reste enregistrée même
@@ -49,5 +51,6 @@ export async function lookupUser(id) {
     pushToken: data.pushToken ?? null,
     prenom: data.prenom ?? null,
     numero: data.numero ?? null,
+    platform: data.platform ?? null,
   };
 }
