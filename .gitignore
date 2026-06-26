@@ -14,8 +14,9 @@ android/
 
 # secrets — NE JAMAIS COMMITTER
 play-service-account.json
-google-services.json
 GoogleService-Info.plist
+# google-services.json : volontairement committé (config FCM Android, requise par
+# le build cloud/CI ; pas un secret serveur — déjà embarqué dans chaque APK).
 .env*
 *.keystore
 *.aab

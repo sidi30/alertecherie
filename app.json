@@ -23,6 +23,7 @@
     },
     "android": {
       "package": "com.sidi30.alertcherie",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "POST_NOTIFICATIONS",
         "ACCESS_NOTIFICATION_POLICY",
